@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>FNAF: Freddy Visibility Fix</title>
+    <style>
+        body { margin: 0; background: #000; color: #fff; font-family: 'Courier New', monospace; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
+        #game { position: relative; width: 800px; height: 600px; background: #000; border: 4px solid #444; }
+
+        /* Офис */
+        #office { width: 100%; height: 100%; position: relative; display: flex; justify-content: space-between; align-items: center; background: #111; }
+        .door-way { width: 170px; height: 450px; background: #000; border: 3px solid #333; position: relative; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+        .door-v { position: absolute; top: -100%; left: 0; width: 100%; height: 100%; background: #222; border-bottom: 10px solid #444; transition: top 0.15s; z-index: 10; }
+        .door-closed .door-v { top: 0; }
+
+        /* Фредди в Офисе */
+        #freddy-office { width: 150px; position: absolute; z-index: 5; display: none; filter: brightness(0.6); }
+        .light-on #freddy-office { display: block; }
+        .light-on { background: #222211 !important; }
+
+        /* Кнопки */
+        .ui-side { display: flex; flex-direction: column; gap: 10px; padding: 20px; z-index: 20; }
+        .btn { padding: 15px; background: #222; color: #fff; border: 2px solid #555; cursor: pointer; font-weight: bold; }
+        .btn-door.active { background: #700; border-color: #f00; }
+        .btn-light.active { background: #770; color: #000; border-color: #ff0; }
+
+        /* ПЛАНШЕТ */
+        #tablet { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 100; display: none; flex-direction: column; }
+        .cam-btns { height: 70px; background: #1a1a1a; display: flex; justify-content: center; align-items: center; gap: 15px; border-bottom: 2px solid #444; }
+        .c-btn { padding: 10px 20px; background: #333; color: #fff; border: 1px solid #777; cursor: pointer; }
+        .c-btn.active { background: #050; border-color: #0f0; }
+
+        #view { flex-grow: 1; position: relative; display: flex; justify-content: center; align-items: center; background: #050505; }
+        
+        #freddy-cam { 
+            position: absolute; 
+            height: 90%; 
+            z-index: 1001; 
+            display: none; 
+            filter: contrast(1.1) brightness(0.7) sepia(0.2);
+        }
+        .noise { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: url('https://media.giphy.com/media/oEI9uWUicKgPUK879b/giphy.gif'); opacity: 0.15; z-index: 1000; pointer-events: none; }
+
+        #hud { position: absolute; top: 15px; left: 20px; font-size: 20px; z-index: 150; color: #0f0; text-shadow: 2px 2px #000; }
+        #tab-btn { position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 250px; height: 35px; background: #333; color: #fff; z-index: 160; text-align: center; line-height: 35px; cursor: pointer; border: 1px solid #666; font-size: 14px; }
+
+        #scare { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 2000; display: none; justify-content: center; align-items: center; }
+        #scare img { width: 130%; animation: shake 0.05s infinite; }
+        @keyframes shake { 0%{transform:translate(10px, 5px)} 50%{transform:translate(-10px, -5px)} }
+    </style>
+</head>
+<body>
+
+<div id="game">
+    <div id="hud">⚡ POWER: <span id="p-val">100</span>% | <span id="clock">12 AM</span></div>
+
+    <div id="office">
+        <div class="ui-side">
+            <button id="d-btn" class="btn btn-door">DOOR</button>
+            <button id="l-btn" class="btn btn-light">LIGHT</button>
+        </div>
+        <div id="door-box" class="door-way">
+            <div class="door-v"></div>
+            <img id="freddy-office" src="https://cdn.discordapp.com/attachments/1429153680405303339/1492882986482274324/image.png?ex=69dcf320&is=69dba1a0&hm=abd7959c0e889f5fa933c0d5baa4890aac337e99d1052ea0411164e4539aaab3&">
+        </div>
+        <div style="color: #444; transform: rotate(90deg); font-size: 10px;">SECURITY_PROT_03</div>
+        <div class="door-way" style="opacity:0.1"><div class="door-v" style="top:0"></div></div>
+    </div>
+
+    <div id="tablet">
+        <div class="cam-btns">
+            <button class="c-btn active" onclick="setCam(1)">CAM 1</button>
+            <button class="c-btn" onclick="setCam(2)">CAM 2</button>
+            <button class="c-btn" onclick="setCam(3)">CAM 3</button>
+        </div>
+        <div id="view">
+            <div id="cam-tag" style="position:absolute; top:10px; left:10px; z-index:1100; color:#0f0;">CAM 1</div>
+            <img id="freddy-cam" src="https://cdn.discordapp.com/attachments/1429153680405303339/1492882986482274324/image.png?ex=69dcf320&is=69dba1a0&hm=abd7959c0e889f5fa933c0d5baa4890aac337e99d1052ea0411164e4539aaab3&">
+            <div class="noise"></div>
+        </div>
+    </div>
+
+    <div id="tab-btn">OPEN MONITOR</div>
+    <div id="scare"><img src="https://cdn.discordapp.com/attachments/1429153680405303339/1492882986482274324/image.png?ex=69dcf320&is=69dba1a0&hm=abd7959c0e889f5fa933c0d5baa4890aac337e99d1052ea0411164e4539aaab3&"></div>
+</div>
+
+<script>
+    let power = 100, hour = 0, enemyPos = 1, currentCam = 1;
+    let isDoor = false, isLight = false, isTab = false, playing = true;
+
+    const fCam = document.getElementById('freddy-cam');
+    const fOff = document.getElementById('freddy-office');
+
+    function update() {
+        // Логика офиса: Фредди виден в дверях, если он на позиции 4 и включен свет
+        if(enemyPos === 4) {
+            fOff.style.display = isLight ? "block" : "none";
+        } else {
+            fOff.style.display = "none";
+        }
+
+        // Логика камер: Если номер камеры совпадает с позицией врага (1, 2 или 3)
+        if (isTab && enemyPos === currentCam) {
+            fCam.style.display = "block";
+        } else {
+            fCam.style.display = "none";
+        }
+    }
+
+    document.getElementById('d-btn').onclick = () => {
+        if(!playing || power <= 0) return;
+        isDoor = !isDoor;
+        document.getElementById('door-box').classList.toggle('door-closed', isDoor);
+        document.getElementById('d-btn').classList.toggle('active', isDoor);
+        // Если дверь закрыта, а Фредди за ней — он уходит на CAM 1
+        if(isDoor && enemyPos === 4) { enemyPos = 1; update(); }
+    };
+
+    document.getElementById('l-btn').onmousedown = () => { 
+        if(playing && power > 0) { 
+            isLight = true; 
+            document.getElementById('door-box').classList.add('light-on'); 
+            document.getElementById('l-btn').classList.add('active'); 
+            update(); 
+        } 
+    };
+    document.getElementById('l-btn').onmouseup = () => { 
+        isLight = false; 
+        document.getElementById('door-box').classList.remove('light-on'); 
+        document.getElementById('l-btn').classList.remove('active'); 
+        update(); 
+    };
+
+    document.getElementById('tab-btn').onclick = () => {
+        if(!playing || power <= 0) return;
+        isTab = !isTab;
+        document.getElementById('tablet').style.display = isTab ? 'flex' : 'none';
+        document.getElementById('tab-btn').innerText = isTab ? "CLOSE MONITOR" : "OPEN MONITOR";
+        update();
+    };
+
+    function setCam(n) {
+        currentCam = n;
+        document.querySelectorAll('.c-btn').forEach((b, i) => b.classList.toggle('active', i === n-1));
+        document.getElementById('cam-tag').innerText = "CAM " + n;
+        update();
+    }
+
+    // ИИ Движения
+    setInterval(() => {
+        if(!playing) return;
+        // Фредди двигается вперед (макс позиция 4 — у двери)
+        if(enemyPos < 4 && Math.random() > 0.4) {
+            enemyPos++;
+            update();
+            console.log("Freddy moved to pos:", enemyPos);
+        }
+        
+        // Условие атаки
+        if(enemyPos === 4 && !isDoor) {
+            if(isTab) {
+                die(); // Скример, если открыт планшет
+            } else {
+                // Если планшет закрыт, есть 3 секунды, чтобы закрыть дверь
+                setTimeout(() => { if(enemyPos === 4 && !isDoor) die(); }, 3000);
+            }
+        }
+    }, 3500);
+
+    // Расход энергии
+    setInterval(() => {
+        if(!playing) return;
+        let usage = 0.2;
+        if(isDoor) usage += 0.8; 
+        if(isLight) usage += 1.2; 
+        if(isTab) usage += 0.5;
+        power -= usage;
+        document.getElementById('p-val').innerText = Math.max(0, Math.floor(power));
+        if(power <= 0) { 
+            playing = false; 
+            document.getElementById('tablet').style.display = 'none'; 
+            document.getElementById('door-box').className = 'door-way'; 
+            setTimeout(die, 2000); 
+        }
+    }, 1000);
+
+    // Таймер времени (45 сек = 1 час игры)
+    setInterval(() => { 
+        if(!playing) return; 
+        hour++; 
+        document.getElementById('clock').innerText = hour + " AM"; 
+        if(hour === 6) { 
+            playing = false; 
+            alert("6 AM! YOU SURVIVED!"); 
+            location.reload(); 
+        } 
+    }, 45000);
+
+    function die() { 
+        if(!playing && power > 0) return; // Чтобы не умирать дважды
+        playing = false; 
+        document.getElementById('scare').style.display = 'flex'; 
+        setTimeout(() => { alert("GAME OVER"); location.reload(); }, 2000); 
+    }
+    
+    // Постоянная проверка (на всякий случай)
+    setInterval(update, 200);
+</script>
+</body>
+</html>
